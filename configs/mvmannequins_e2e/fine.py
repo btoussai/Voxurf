@@ -2,16 +2,38 @@ import os
 
 _base_ = os.path.join('..', 'default_fine_s.py')
 
+# TODO: replace with manikins data
+
 expname = 'scan'
-basedir = os.path.join('.', 'logs', 'custom')
+basedir = os.path.join('.', 'logs', 'mvmannequins')
 train_all = True
 reso_level = 1
 exp_stage = 'fine'
 
+sequences = [
+    "kinette-cos-hx",
+    "kinette-hx",
+    "kinette-jea-hx",
+    "kinette-opt1-hx",
+    "kinette-opt2-hx",
+    "kinette-opt3-hx",
+    "kinette-sho-hx",
+    "kinette-tig-hx",
+    "kino-cos-hx",
+    "kino-hx",
+    "kino-jea-hx",
+    "kino-opt-hx",
+    "kino-sho-hx",
+    "kino-tig-hx"
+]
+
+use_sp_color = True
+white_list = []
+black_list = sequences
 
 data = dict(
-    datadir=os.path.join('.', 'data'),
-    dataset_type='dtu',
+    datadir=os.path.join('/disk/btoussai/SiggraphAsia2024/MVMannequinDataset/MultiViewPreProcessed/'),
+    dataset_type='mvmannequins',
     inverse_y=True,
     white_bkgd=False,
 )

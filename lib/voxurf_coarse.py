@@ -515,7 +515,10 @@ class Voxurf(torch.nn.Module):
 
         ret_dict = {}
         N = len(rays_o)
-        
+
+
+
+   
         ray_pts, ray_id, step_id, mask_outbbox, N_steps = self.sample_ray_cuda(
                 rays_o=rays_o, rays_d=rays_d, is_train=global_step is not None, **render_kwargs)
         # interval = render_kwargs['stepsize'] * self.voxel_size_ratio
@@ -808,10 +811,10 @@ def get_rays_of_a_view(H, W, K, c2w, ndc, inverse_y, flip_x, flip_y, mode='cente
 def get_training_rays(rgb_tr, train_poses, HW, Ks, ndc, inverse_y, flip_x, flip_y):
     print('get_training_rays: start')
     assert len(np.unique(HW, axis=0)) == 1
-    assert len(np.unique(Ks.reshape(len(Ks),-1), axis=0)) == 1
+    # assert len(np.unique(Ks.reshape(len(Ks),-1), axis=0)) == 1 # Why ?
     assert len(rgb_tr) == len(train_poses) and len(rgb_tr) == len(Ks) and len(rgb_tr) == len(HW)
     H, W = HW[0]
-    K = Ks[0]
+    # K = Ks[0]
     eps_time = time.time()
     rays_o_tr = torch.zeros([len(rgb_tr), H, W, 3], device=rgb_tr.device)
     rays_d_tr = torch.zeros([len(rgb_tr), H, W, 3], device=rgb_tr.device)
@@ -819,7 +822,7 @@ def get_training_rays(rgb_tr, train_poses, HW, Ks, ndc, inverse_y, flip_x, flip_
     imsz = [1] * len(rgb_tr)
     for i, c2w in enumerate(train_poses):
         rays_o, rays_d, viewdirs = get_rays_of_a_view(
-            H=H, W=W, K=K, c2w=c2w, ndc=ndc, inverse_y=inverse_y, flip_x=flip_x, flip_y=flip_y)
+            H=H, W=W, K=Ks[i], c2w=c2w, ndc=ndc, inverse_y=inverse_y, flip_x=flip_x, flip_y=flip_y)
         rays_o_tr[i].copy_(rays_o.to(rgb_tr.device))
         rays_d_tr[i].copy_(rays_d.to(rgb_tr.device))
         viewdirs_tr[i].copy_(viewdirs.to(rgb_tr.device))

@@ -13,6 +13,8 @@ from .load_co3d import load_co3d_data
 from .load_scannet import load_scannet_data
 from .load_llff import load_llff_data
 from .load_mobilebrick import load_mobilebrick_data
+from .load_mvmannequins import load_mvmannequins_data
+from .load_actorshq import load_actorshq_data
 
 def load_data(args, reso_level=2, train_all=True, wmask=True, white_bg=True):
     print("[ resolution level {} | train all {} | wmask {} | white_bg {}]".format(reso_level, train_all, wmask, white_bg))
@@ -175,7 +177,28 @@ def load_data(args, reso_level=2, train_all=True, wmask=True, white_bg=True):
         near, far = inward_nearfar_heuristic(poses[i_train, :3, 3])
 
         assert images.shape[-1] == 3
+    elif args.dataset_type == "kinovis_manikins":
+        images, poses, render_poses, hwf, K, i_split, scale_mats_np, masks = load_mvmannequins_data(args.datadir, reso_level=reso_level, mask=wmask, white_bg=white_bg)
+        print('Loaded kinovis_manikins', images.shape, render_poses.shape, hwf, args.datadir)
+        i_train, i_val, i_test = i_split
 
+        if train_all:
+            i_train = np.arange(int(images.shape[0]))
+
+        near, far = inward_nearfar_heuristic(poses[i_train, :3, 3])
+
+        assert images.shape[-1] == 3
+    elif args.dataset_type == "ActorsHQ":
+        images, poses, render_poses, hwf, K, i_split, scale_mats_np, masks = load_actorshq_data(args.datadir, reso_level=reso_level, mask=wmask, white_bg=white_bg)
+        print('Loaded ActorsHQ', images.shape, render_poses.shape, hwf, args.datadir)
+        i_train, i_val, i_test = i_split
+
+        if train_all:
+            i_train = np.arange(int(images.shape[0]))
+
+        near, far = inward_nearfar_heuristic(poses[i_train, :3, 3])
+
+        assert images.shape[-1] == 3
     else:
         raise NotImplementedError(f'Unknown dataset type {args.dataset_type} exiting')
 

@@ -308,8 +308,12 @@ def load_everything(args, cfg):
         data_dict['images'] = [torch.FloatTensor(im, device='cpu').cuda() for im in data_dict['images']]
         data_dict['masks'] = [torch.FloatTensor(im, device='cpu').cuda() for im in data_dict['masks']]
     else:
-        data_dict['images'] = torch.FloatTensor(data_dict['images'], device='cpu').cuda()
-        data_dict['masks'] = torch.FloatTensor(data_dict['masks'], device='cpu').cuda()
+        if cfg.exp_stage == "coarse":
+            data_dict['images'] = torch.FloatTensor(data_dict['images'], device='cpu').cuda()
+            data_dict['masks'] = torch.FloatTensor(data_dict['masks'], device='cpu').cuda()
+        else:
+            data_dict['images'] = torch.FloatTensor(data_dict['images'], device='cpu').cuda().to(torch.float16)
+            data_dict['masks'] = torch.FloatTensor(data_dict['masks'], device='cpu').cuda().to(torch.float16)
     data_dict['poses'] = torch.Tensor(data_dict['poses'])
     return data_dict
 
@@ -416,7 +420,6 @@ def scene_rep_reconstruction(args, cfg, cfg_model, cfg_train, xyz_min, xyz_max, 
     if cfg_model.maskout_near_cam_vox:
         model.maskout_near_cam_vox(poses[i_train,:3,3], near)
     model = model.to(device)
-
     # init optimizer
     optimizer = utils.create_optimizer_or_freeze_model(model, cfg_train, global_step=0)
 
@@ -832,6 +835,10 @@ def train(args, cfg, data_dict):
         box_size_ = cfg.surf_train.get('box_size', 1.5)
         print(">>> box_size: ", box_size_)
         xyz_min_fine, xyz_max_fine = torch.tensor([-box_size_,-box_size_,-box_size_]).cuda(), torch.tensor([box_size_, box_size_, box_size_]).cuda()
+
+        # if "kinovis_manikins" in args.config:
+            # xyz_min_fine = torch.tensor([0, -0.7, -0.2]).cuda()
+            # xyz_max_fine = torch.tensor([1.5, 0.6, 2.1]).cuda()
     else:
         xyz_min_fine, xyz_max_fine = compute_bbox_by_coarse_geo(
             model_class=dvgo_ori.DirectVoxGO, model_path=coarse_ckpt_path,
@@ -897,6 +904,7 @@ def validate_mesh(model, resolution=128, threshold=0.0, prefix="", world_space=F
     else:
         mesh = trimesh.Trimesh(vertices, triangles)
     mesh_path = os.path.join(cfg.basedir, cfg.expname, 'meshes', "{}_".format(scene)+prefix+'.ply')
+    os.makedirs(os.path.dirname(mesh_path), exist_ok=True)
     mesh.export(mesh_path)
     logger.info("mesh saved at " + mesh_path)
     if gt_eval:
@@ -912,7 +920,7 @@ if __name__=='__main__':
     # load setup
     parser = config_parser()
     args = parser.parse_args()
-    cfg = mmcv.Config.fromfile(args.config)
+    cfg = mmcv.utils.config.Config.fromfile(args.config)
     # reset the root by the scene id
     if args.scene:
         cfg.expname += "{}".format(args.scene)
@@ -940,11 +948,11 @@ if __name__=='__main__':
     # set white or black color
     if cfg.get('use_sp_color', False):
         assert 'white_list' in cfg and 'black_list' in cfg
-        if int(args.scene) in cfg['white_list']:
+        if args.scene in cfg['white_list']:
             assert args.scene not in cfg['black_list']
             cfg.data.white_bkgd = True
             logger.info("+ "*10 + str(args.scene) + ' white bg '  + " +"*10)
-        if int(args.scene) in cfg['black_list']:
+        if args.scene in cfg['black_list']:
             assert args.scene not in cfg['white_list']
             cfg.data.white_bkgd = False
             logger.info("+ "*10 + str(args.scene) + ' black bg '  + " +"*10)

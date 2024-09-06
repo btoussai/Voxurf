@@ -3,23 +3,50 @@ import os
 _base_ = os.path.join('..', 'default_fine_s.py')
 
 expname = 'scan'
-basedir = os.path.join('.', 'logs', 'custom')
-train_all = True
+basedir = os.path.join('.', 'logs', 'mvmannequins_womask')
+train_all = False
 reso_level = 1
 exp_stage = 'fine'
 
+sequences = [
+    "kinette-cos-hx",
+    "kinette-hx",
+    "kinette-jea-hx",
+    "kinette-opt1-hx",
+    "kinette-opt2-hx",
+    "kinette-opt3-hx",
+    "kinette-sho-hx",
+    "kinette-tig-hx",
+    "kino-cos-hx",
+    "kino-hx",
+    "kino-jea-hx",
+    "kino-opt-hx",
+    "kino-sho-hx",
+    "kino-tig-hx"
+]
+
+use_sp_color = False
+white_list = []
+black_list = sequences
 
 data = dict(
-    datadir=os.path.join('.', 'data'),
-    dataset_type='dtu',
+    datadir=os.path.join('/disk/btoussai/SiggraphAsia2024/MVMannequinDataset/MultiViewPreProcessed/'),
+    dataset_type='mvmannequins',
     inverse_y=True,
     white_bkgd=False,
+    mode=dict(
+        train_all=False,
+        wmask=False,
+    ),
 )
 
 surf_train=dict(
     load_density_from=None,
-    load_sdf_from='auto',
+    load_sdf_from = 'auto',
+    load_bg_density=True,
 
+    ori_tv=False,
+    box_size=1.,
     pg_scale=[15000],
     scale_ratio=4.096,
     weight_rgb0=0.5,  # this is for the first rgbnet
@@ -30,14 +57,16 @@ surf_train=dict(
     lrate_decay=20,
     # eval_iters=[100, 500, 1000, 2000, 3000, 5000, 10000, 15000, 17000, 18000, 19000, 20000, 25000, 30000, 35000],
 
-    tv_dense_before=20000,
     tv_end=30000,
+    tv_dense_before=30000,
+
     tv_every=3,
     weight_tv_density=0.01,
     tv_terms=dict(
         sdf_tv=0.1,
         grad_tv=0,
         grad_norm=0,
+        bg_density_tv=0.01,
         smooth_grad_tv=0.05,
     ),
     cosine_lr=True,
@@ -48,20 +77,25 @@ surf_train=dict(
     lrate_sdf=5e-3,
     decay_step_module={
         15000:dict(sdf=0.1),
+        15000:dict(bg_density=0.1)
     },
     lrate_k0=1e-1, #1e-1,                # lr of color/feature voxel grid
-    lrate_rgbnet=1e-3 * 3, # 1e-3,       # lr of the mlp to predict view-dependent color
+    lrate_rgbnet=1e-3 * 3, # 1e-3,            # lr of the mlp to predict view-dependent color
     lrate_k_rgbnet=1e-3,
+    lrate_bg_rgbnet=1e-3,
+    lrate_bg_density=5e-3,
+    lrate_bg_k0=1e-1,
+    ray_sampler='random',
 )
-
 surf_model_and_render=dict(
     num_voxels=256**3,
     num_voxels_base=256**3,
+    num_voxels_bg=160**3,
     posbase_pe=5,
     viewbase_pe=1,
     k_posbase_pe=5, # default = 5
     k_viewbase_pe=1, # default = 4
-    k_res=True, # default = True
+    k_res=True, # default is True
     rgbnet_full_implicit=False, # by using a full mlp without local feature for rgb, the info for the geometry would be better
     rgbnet_depth=4,
     k_rgbnet_depth=4, # deeper is better
@@ -75,12 +109,14 @@ surf_model_and_render=dict(
     sdf_feat=(0.5, 1.0, 1.5, 2.0,),
     octave_use_corner=False,
     use_grad_norm=True,
+    octave_feat=(),
     use_mlp_residual=False,
     surface_sampling=False,
     use_trimap=False,
     n_importance=64,
     up_sample_steps=1,
-    stepsize=0.5,
+    stepsize=0.5, # whole ray
+    use_layer_norm=True,
     s_ratio=50,
     s_start=0.05,
 )

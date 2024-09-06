@@ -3,15 +3,22 @@ import os
 _base_ = os.path.join('..', 'default_fine_s.py')
 
 expname = 'scan'
-basedir = os.path.join('.', 'logs', 'custom')
+basedir = os.path.join('.', 'logs', 'actorshq')
 train_all = True
-reso_level = 1
+reso_level = 2
 exp_stage = 'fine'
 
+sequences = [ f"Actor{i:02d}Sequence{j}" for j in range(1,3) for i in range(1,9) if (i,j) not in [(2,2), (3,2), (7,2)]]
+dest_path = "/home/btoussai/Bureau/ActorsHQ_subset/"
+
+
+use_sp_color = True
+white_list = []
+black_list = sequences
 
 data = dict(
-    datadir=os.path.join('.', 'data'),
-    dataset_type='dtu',
+    datadir=dest_path,
+    dataset_type='ActorsHQ',
     inverse_y=True,
     white_bkgd=False,
 )
@@ -26,7 +33,7 @@ surf_train=dict(
     weight_main=1,    # this is for k_rgbnet, which is the final output
 
     sdf_reduce=0.3,
-    N_iters=20000,
+    N_iters=60000,
     lrate_decay=20,
     # eval_iters=[100, 500, 1000, 2000, 3000, 5000, 10000, 15000, 17000, 18000, 19000, 20000, 25000, 30000, 35000],
 
